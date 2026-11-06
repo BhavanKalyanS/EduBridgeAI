@@ -91,6 +91,13 @@ a { color: inherit; text-decoration: none; }
 .textbook-source-note { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 12px; margin-top: 12px; color: #71817b; font-size: 10px; line-height: 1.5; }
 .textbook-source-note button, .textbook-source-note a { padding: 0; border: 0; color: var(--green-dark); background: transparent; font-size: inherit; font-weight: 700; text-decoration: underline; }
 .textbook-source-note button:disabled { cursor: wait; opacity: .65; }
+.textbook-pdf-viewer { width: 100%; height: min(78vh, 900px); min-height: 620px; overflow: auto; margin-top: 14px; border: 1px solid var(--line); background: #d7d9d7; }
+.textbook-pdf-pages { display: flex; flex-direction: column; align-items: center; gap: 12px; min-height: 100%; padding: 12px; }
+.textbook-pdf-page { display: block; max-width: 100%; background: #fff; box-shadow: 0 1px 5px #1d312e33; }
+.textbook-pdf-status { position: sticky; z-index: 1; top: 0; display: flex; justify-content: center; gap: 8px; padding: 10px; color: var(--muted); background: #fff; font-size: 12px; }
+.textbook-pdf-error { color: #a33d2b; }
+.textbook-pdf-error button { border: 0; color: var(--green-dark); background: transparent; font: inherit; font-weight: 700; text-decoration: underline; }
+.textbook-pdf-loading { min-height: 180px; display: grid; place-items: center; margin-top: 14px; border: 1px solid var(--line); color: var(--muted); background: #f9faf8; font-size: 12px; }
 .item-count { color: #89968f; font-size: 9px; font-weight: 700; white-space: nowrap; }
 .subject-filter select { max-width: 150px; height: 30px; padding: 0 8px; border: 1px solid #e1e8e2; border-radius: 4px; color: #50635a; background: #fff; font-size: 9px; }
 .concept-list { margin-top: 17px; }

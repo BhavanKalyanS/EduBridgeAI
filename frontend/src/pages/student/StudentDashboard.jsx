@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import api, { errorMessage } from "../../api/client";
 import MasteryBar from "../../components/MasteryBar";
 import StageBadge from "../../components/StageBadge";
+import TextbookPdfViewer from "../../components/TextbookPdfViewer";
 
 export default function StudentDashboard() {
   const { t } = useTranslation();
@@ -12,17 +13,14 @@ export default function StudentDashboard() {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [lesson, setLesson] = useState(null);
-  const [sourcePdfUrl, setSourcePdfUrl] = useState("");
+  const [sourcePdf, setSourcePdf] = useState(null);
   const [sourcePdfLoading, setSourcePdfLoading] = useState(false);
+  const [sourcePdfFailed, setSourcePdfFailed] = useState(false);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState("");
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  useEffect(() => () => {
-    if (sourcePdfUrl) URL.revokeObjectURL(sourcePdfUrl);
-  }, [sourcePdfUrl]);
 
   useEffect(() => {
     let active = true;
@@ -46,6 +44,7 @@ export default function StudentDashboard() {
     api.get(`/learn/${selectedId}`)
       .then(({ data }) => {
         if (active) {
+          setSourcePdfLoading(Boolean(data.textbook_source));
           setLesson(data);
           setError("");
         }
@@ -54,10 +53,31 @@ export default function StudentDashboard() {
     return () => { active = false; };
   }, [selectedId]);
 
+  useEffect(() => {
+    if (!lesson?.textbook_source || lesson.concept_id !== selectedId) return undefined;
+
+    let active = true;
+    api.get(`/learn/${selectedId}/source.pdf`, { responseType: "blob" })
+      .then(({ data }) => {
+        if (active) setSourcePdf(data);
+      })
+      .catch((requestError) => {
+        if (active) {
+          setSourcePdfFailed(true);
+          setError(errorMessage(requestError));
+        }
+      })
+      .finally(() => active && setSourcePdfLoading(false));
+
+    return () => { active = false; };
+  }, [lesson?.concept_id, lesson?.textbook_source, selectedId]);
+
   function selectConcept(conceptId) {
     setSelectedSubject(concepts.find((item) => item.concept_id === conceptId)?.subject || "");
     setLesson(null);
-    setSourcePdfUrl("");
+    setSourcePdf(null);
+    setSourcePdfLoading(false);
+    setSourcePdfFailed(false);
     setFeedback(null);
     setSelectedOption("");
     setQuestionIndex(0);
@@ -97,8 +117,10 @@ export default function StudentDashboard() {
     setError("");
     try {
       const { data } = await api.get(`/learn/${selectedId}/source.pdf`, { responseType: "blob" });
-      setSourcePdfUrl(URL.createObjectURL(data));
+      setSourcePdf(data);
+      setSourcePdfFailed(false);
     } catch (requestError) {
+      setSourcePdfFailed(true);
       setError(errorMessage(requestError));
     } finally {
       setSourcePdfLoading(false);
@@ -160,13 +182,17 @@ export default function StudentDashboard() {
                 <p className="lesson-meta">{selectedConcept?.subject} <span>·</span> {selectedConcept?.chapter}</p>
                 {lesson.textbook_source && (
                   <div className="textbook-source-note">
-                    Full textbook text · English · {lesson.source_page_count} pages. Page layout and illustrations are available in the original PDF.
-                    {sourcePdfUrl
-                      ? <a href={sourcePdfUrl} target="_blank" rel="noreferrer">Open original PDF</a>
-                      : <button type="button" onClick={loadSourcePdf} disabled={sourcePdfLoading}>{sourcePdfLoading ? "Loading PDF..." : "Load original PDF"}</button>}
+                    Original textbook PDF · English · {lesson.source_page_count} pages.
+                    {sourcePdfFailed && !sourcePdf && <button type="button" onClick={loadSourcePdf} disabled={sourcePdfLoading}>{sourcePdfLoading ? "Loading PDF..." : "Retry loading PDF"}</button>}
                   </div>
                 )}
-                <div className="lesson-content"><p>{lesson.content}</p></div>
+                {lesson.textbook_source
+                  ? sourcePdf
+                    ? <TextbookPdfViewer key={lesson.concept_id} file={sourcePdf} title={lesson.title} />
+                    : sourcePdfFailed
+                      ? <div className="textbook-pdf-loading" role="status">The PDF could not be loaded.</div>
+                      : <div className="textbook-pdf-loading" role="status">{sourcePdfLoading || !sourcePdf ? "Loading textbook PDF..." : "The PDF could not be loaded."}</div>
+                  : <div className="lesson-content"><p>{lesson.content}</p></div>}
                 {lesson.keywords?.length > 0 && (
                   <div className="keyword-area"><div className="eyebrow">KEY WORDS</div><div className="keyword-list">{lesson.keywords.map((keyword, index) => <div className="keyword-item" key={`${keyword.en}-${index}`}><strong>{keyword.en}</strong><span>{keyword.regional}</span></div>)}</div></div>
                 )}
