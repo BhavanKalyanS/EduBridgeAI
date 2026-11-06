@@ -1,0 +1,60 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-edubridge}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-local-only-change-this-password}
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username \"$$MONGO_INITDB_ROOT_USERNAME\" --password \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval 'db.adminCommand(\"ping\").ok' | grep 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:-local-only-change-me-to-a-long-random-secret}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-local-only-change-this-jwt-key-to-a-long-random-secret}
+      MONGO_URI: mongodb://${MONGO_ROOT_USERNAME:-edubridge}:${MONGO_ROOT_PASSWORD:-local-only-change-this-password}@mongo:27017/edubridge?authSource=admin
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      BKT_P0: ${BKT_P0:-0.30}
+      BKT_T: ${BKT_T:-0.10}
+      BKT_G: ${BKT_G:-0.20}
+      BKT_S: ${BKT_S:-0.10}
+      PROMOTE_M: ${PROMOTE_M:-0.85}
+      PROMOTE_L: ${PROMOTE_L:-0.70}
+      REGRESS_M: ${REGRESS_M:-0.40}
+      STAGE_STREAK: ${STAGE_STREAK:-3}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    ports:
+      - "5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mongo_data:

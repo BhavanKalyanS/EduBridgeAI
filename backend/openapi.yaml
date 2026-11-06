@@ -1,0 +1,284 @@
+openapi: 3.1.0
+info:
+  title: EduBridge AI API
+  version: 0.1.0
+  description: Phase 1 API for stage-aware multilingual learning. BKT parameters and stage thresholds are untuned defaults.
+servers:
+  - url: http://localhost:5000/api
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      security: []
+      summary: Check API and database health
+      responses:
+        "200": { description: API and database are healthy }
+        "503": { description: Database is unavailable }
+  /auth/login:
+    post:
+      security: []
+      summary: Authenticate and receive a short-lived JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+      responses:
+        "200": { description: Access token and user profile }
+        "401": { description: Invalid credentials }
+        "422": { description: Invalid request }
+  /auth/me:
+    get:
+      summary: Return the current profile
+      responses:
+        "200": { description: Current user profile }
+        "401": { description: Missing, expired, or inactive account token }
+  /concepts:
+    get:
+      summary: List approved concepts with per-concept mastery and stage
+      parameters:
+        - in: query
+          name: subject
+          schema: { type: string }
+      responses:
+        "200": { description: Concept list }
+        "403": { description: Student role required }
+  /learn/{concept_id}:
+    get:
+      summary: Get the lesson for the learner's current stage
+      parameters:
+        - in: path
+          name: concept_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Localized lesson, keywords, and quiz without answer keys }
+        "404": { description: Concept not found }
+  /learn/revision:
+    get:
+      summary: Get concepts that need revision or vocabulary support
+      responses:
+        "200": { description: Revision list }
+  /learn/answer:
+    post:
+      summary: Validate and score a quiz answer, append an event, update BKT and stage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_id, concept_id, stage, q_id, selected_option, time_ms]
+              properties:
+                event_id: { type: string, format: uuid }
+                concept_id: { type: string }
+                stage: { type: integer, minimum: 0, maximum: 4 }
+                q_id: { type: string }
+                selected_option: { type: string }
+                time_ms: { type: integer, minimum: 0 }
+      responses:
+        "200": { description: Correctness, updated M/L, and stage decision }
+        "409": { description: Duplicate event ID }
+        "422": { description: Invalid event, concept, stage, or question }
+  /teacher/class/{class_id}/summary:
+    get:
+      summary: Teacher's own class summary
+      parameters:
+        - in: path
+          name: class_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Class summary }
+        "404": { description: Class not found or not owned by teacher }
+  /teacher/class/{class_id}/heatmap:
+    get:
+      summary: Students by concepts mastery heatmap
+      parameters:
+        - in: path
+          name: class_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Concept mastery matrix and stage values }
+  /teacher/student/{student_id}:
+    get:
+      summary: View a student's learning history within the teacher's own class
+      parameters:
+        - in: path
+          name: student_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Student progress and recent events }
+        "404": { description: Student not found or outside class }
+  /teacher/attendance:
+    get:
+      summary: Read attendance for the teacher's own class and a date
+      parameters:
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: Daily attendance by student ID }
+    post:
+      summary: Record class attendance for a date
+      responses:
+        "200": { description: Attendance saved }
+        "403": { description: Student does not belong to teacher's class }
+  /parent/child/{student_id}:
+    get:
+      summary: View attendance and progress for a linked child only
+      parameters:
+        - in: path
+          name: student_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Progress-only child summary }
+        "404": { description: Child is not linked to this parent }
+  /tutor:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Phase 2 tutor placeholder
+      responses:
+        "501": { description: Tutor is not implemented in Phase 1 }
+  /admin/overview:
+    get:
+      summary: Admin counts and system status
+      responses:
+        "200": { description: System overview }
+  /admin/users:
+    get:
+      summary: List user accounts
+      responses:
+        "200": { description: User list }
+    post:
+      summary: Create a user account
+      responses:
+        "201": { description: User created }
+        "409": { description: Email already exists }
+  /admin/users/{user_id}:
+    patch:
+      summary: Update user profile, consent, links, or reset password
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: User updated }
+    delete:
+      summary: Deactivate a user account
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Account deactivated }
+  /admin/classes:
+    get:
+      summary: List classes and rosters
+      responses:
+        "200": { description: Class list }
+    post:
+      summary: Create a class with an active teacher and students
+      responses:
+        "201": { description: Class created }
+        "422": { description: Invalid roster }
+  /admin/classes/{class_id}:
+    put:
+      summary: Update class membership
+      parameters:
+        - in: path
+          name: class_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Class updated }
+    delete:
+      summary: Delete a class and clear roster assignments
+      parameters:
+        - in: path
+          name: class_id
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Class deleted }
+  /admin/curriculum:
+    get:
+      summary: List curriculum concepts and review state
+      responses:
+        "200": { description: Curriculum list }
+    post:
+      summary: Create a curriculum concept
+      responses:
+        "201": { description: Concept created }
+  /admin/curriculum/{concept_id}:
+    put:
+      summary: Update staged localized curriculum and review metadata
+      parameters:
+        - in: path
+          name: concept_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Concept updated }
+    delete:
+      summary: Delete a curriculum concept
+      parameters:
+        - in: path
+          name: concept_id
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Concept deleted }
+  /admin/settings:
+    get:
+      summary: Read configurable BKT parameters and stage thresholds
+      responses:
+        "200": { description: Settings with untuned status }
+    put:
+      summary: Update BKT parameters and thresholds
+      responses:
+        "200": { description: Settings updated, still labelled untuned }
+        "422": { description: Invalid values }
+  /admin/events:
+    get:
+      summary: Inspect valid and rejected answer events
+      responses:
+        "200": { description: Paginated event list }
+  /admin/audit:
+    get:
+      summary: Inspect administrator and content changes
+      responses:
+        "200": { description: Recent audit records }
+  /auth/data-export:
+    get:
+      summary: Download the authenticated user's profile and learning data
+      responses:
+        "200": { description: Personal data export }
+  /auth/delete-request:
+    post:
+      summary: Submit a data deletion request for administrator review
+      responses:
+        "202": { description: Request recorded }
+  /admin/privacy-requests:
+    get:
+      summary: List data deletion requests
+      responses:
+        "200": { description: Privacy request list }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

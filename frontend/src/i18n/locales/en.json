@@ -1,0 +1,18 @@
+{
+  "brand": "EduBridge",
+  "dashboard": "Dashboard",
+  "learning": "Learning",
+  "progress": "Progress",
+  "signOut": "Sign out",
+  "language": "Language",
+  "stageNote": "Stage shows the amount of English support, not English proficiency.",
+  "loading": "Loading your workspace...",
+  "retry": "Try again",
+  "noConcepts": "No approved concepts are available yet.",
+  "understanding": "Understanding",
+  "englishWords": "English words",
+  "lesson": "Lesson",
+  "checkAnswer": "Check answer",
+  "needsSupport": "Needs vocabulary support",
+  "stage": "Stage"
+}
