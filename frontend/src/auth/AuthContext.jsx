@@ -8,12 +8,21 @@ export function AuthProvider({ children }) {
     catch { return null; }
   });
 
-  async function login(email, password) {
-    const { data } = await api.post("/auth/login", { email, password });
+  function establishSession(data) {
     localStorage.setItem("edubridge_token", data.access_token);
     localStorage.setItem("edubridge_user", JSON.stringify(data.user));
     setUser(data.user);
     return data.user;
+  }
+
+  async function login(email, password) {
+    const { data } = await api.post("/auth/login", { email, password });
+    return establishSession(data);
+  }
+
+  async function register(name, email, password, language) {
+    const { data } = await api.post("/auth/register", { name, email, password, language });
+    return establishSession(data);
   }
 
   function logout() {
@@ -22,5 +31,5 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
-  return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, login, register, logout }}>{children}</AuthContext.Provider>;
 }

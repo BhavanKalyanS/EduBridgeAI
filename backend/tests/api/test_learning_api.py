@@ -1,8 +1,10 @@
 import os
 import uuid
+from io import BytesIO
 
 import bcrypt
 import pytest
+from gridfs import GridFSBucket
 
 from backend.app import create_app
 from backend.config import TestConfig
@@ -66,6 +68,90 @@ def _token(client, email):
     response = client.post("/api/auth/login", json={"email": email, "password": "EduBridgeTest!2026"})
     assert response.status_code == 200
     return response.json["access_token"]
+
+
+def test_student_registration_creates_student_and_returns_session(api_client):
+    client, _ids = api_client
+
+    response = client.post("/api/auth/register", json={
+        "name": "New Student",
+        "email": "new.student@example.com",
+        "password": "StudentPass!2026",
+        "language": "en",
+    })
+
+    assert response.status_code == 201
+    assert response.json["user"]["role"] == "student"
+    assert response.json["user"]["language"] == "en"
+    assert response.json["user"]["grade"] == "10"
+    assert response.json["user"]["consent"] is False
+    assert response.json["access_token"]
+    with client.application.app_context():
+        user = mongo.db.users.find_one({"email": "new.student@example.com"})
+        assert user["password_hash"] != "StudentPass!2026"
+        assert user["role"] == "student"
+
+
+def test_student_registration_rejects_role_override_and_duplicate_email(api_client):
+    client, _ids = api_client
+    payload = {
+        "name": "New Student",
+        "email": "new.student@example.com",
+        "password": "StudentPass!2026",
+    }
+
+    forbidden_role = client.post("/api/auth/register", json=payload | {"role": "admin"})
+    assert forbidden_role.status_code == 422
+
+    created = client.post("/api/auth/register", json=payload)
+    duplicate = client.post("/api/auth/register", json=payload)
+    assert created.status_code == 201
+    assert duplicate.status_code == 409
+
+
+def test_textbook_lesson_and_pdf_are_served_from_atlas(api_client):
+    client, _ids = api_client
+    with client.application.app_context():
+        source_id = "test-textbook-source"
+        file_id = GridFSBucket(mongo.db).upload_from_stream(
+            source_id,
+            BytesIO(b"%PDF-1.4 test textbook"),
+            metadata={"source_id": source_id},
+        )
+        mongo.db.textbook_sources.insert_one({
+            "source_id": source_id,
+            "source_file": "chapter.pdf",
+            "language": "en",
+            "page_count": 2,
+            "text": "Full textbook chapter text",
+            "gridfs_file_id": file_id,
+        })
+        mongo.db.curriculum.insert_one({
+            "concept_id": "test-textbook",
+            "source_id": source_id,
+            "review_status": "approved",
+            "grade": "10",
+            "board": "CBSE",
+            "subject": "Science",
+            "chapter": "Chapter 1",
+            "lesson": "Test chapter",
+            "title": {"en": "Test chapter"},
+            "quiz": [],
+        })
+
+    token = _token(client, "student@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    lesson = client.get("/api/learn/test-textbook", headers=headers)
+    pdf = client.get("/api/learn/test-textbook/source.pdf", headers=headers)
+
+    assert lesson.status_code == 200
+    assert lesson.json["content"] == "Full textbook chapter text"
+    assert lesson.json["content_language"] == "en"
+    assert lesson.json["textbook_source"] is True
+    assert lesson.json["source_page_count"] == 2
+    assert pdf.status_code == 200
+    assert pdf.mimetype == "application/pdf"
+    assert pdf.data == b"%PDF-1.4 test textbook"
 
 
 def test_answer_is_scored_server_side_and_duplicate_is_idempotent(api_client):

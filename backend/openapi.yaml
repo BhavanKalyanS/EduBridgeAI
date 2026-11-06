@@ -33,6 +33,29 @@ paths:
         "200": { description: Access token and user profile }
         "401": { description: Invalid credentials }
         "422": { description: Invalid request }
+  /auth/register:
+    post:
+      security: []
+      summary: Create a student account and receive a short-lived JWT
+      description: Public registration creates student accounts only. Staff, parent, and administrator accounts are created by a school administrator.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, email, password]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 10, maxLength: 128 }
+                language: { type: string, enum: [ta, ml, kn, te, en], default: ta }
+      responses:
+        "201": { description: Student account and access token }
+        "409": { description: An account already exists for this email }
+        "422": { description: Invalid request }
+        "429": { description: Registration rate limit exceeded }
   /auth/me:
     get:
       summary: Return the current profile
@@ -60,6 +83,19 @@ paths:
       responses:
         "200": { description: Localized lesson, keywords, and quiz without answer keys }
         "404": { description: Concept not found }
+  /learn/{concept_id}/source.pdf:
+    get:
+      summary: Stream the original textbook PDF for an approved lesson
+      description: Requires student authentication. The PDF is stored in Atlas GridFS and scoped to the learner's grade and board.
+      parameters:
+        - in: path
+          name: concept_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Original PDF, content type application/pdf }
+        "404": { description: Textbook source not found }
+        "503": { description: Textbook PDF is unavailable }
   /learn/revision:
     get:
       summary: Get concepts that need revision or vocabulary support

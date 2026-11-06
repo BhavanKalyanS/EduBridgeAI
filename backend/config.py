@@ -36,4 +36,5 @@ class Config:
 class TestConfig(Config):
     APP_ENV = "testing"
     TESTING = True
+    MONGO_URI = ""
     JWT_SECRET_KEY = "test-secret-key-with-at-least-thirty-two-bytes"

@@ -24,7 +24,16 @@ Prerequisites: a MongoDB Atlas cluster, Docker Desktop with Compose, Git, and a 
    docker compose -f infra/docker-compose.yml exec backend python scripts/seed_users.py
    ```
 
-4. Open [http://localhost:5173](http://localhost:5173). The API health check is at [http://localhost:5000/api/health](http://localhost:5000/api/health).
+4. To import the supplied textbook ZIPs, install backend requirements in the host Python environment and run the importer from the repository root:
+
+   ```powershell
+   python -m pip install -r backend/requirements.txt
+   python -m scripts.import_textbooks
+   ```
+
+   The importer stores extracted chapter text in `textbook_sources`, original PDFs in Atlas GridFS, and approved chapter entries in the curriculum. It upserts matching records and does not delete user data. PDF illustrations and layout are retained in the original PDF; the lesson text is extracted separately. The current ZIPs include First Flight English, Mathematics, Science, and Democratic Politics chapters; they do not contain every Class 10 CBSE English or Social Science textbook.
+
+5. Open [http://localhost:5173](http://localhost:5173). The API health check is at [http://localhost:5000/api/health](http://localhost:5000/api/health).
 
 The seed scripts write to the Atlas database in `MONGO_URI`. They reset demo-account passwords when rerun and create synthetic progress records; use a development cluster only, never staging or production data.
 
@@ -40,6 +49,8 @@ All seeded accounts use `EduBridgeDemo!2026` locally:
 | Teacher | `teacher@example.com` |
 | Parent | `parent@example.com` |
 | Admin | `admin@example.com` |
+
+Students can also create a Class 10 account from the sign-in page. Teacher, parent, and admin accounts must be created by a school administrator. Use synthetic data only in development; obtain institutional approval and parental consent before using the app with real minors.
 
 ## Tests and checks
 

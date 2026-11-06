@@ -12,11 +12,17 @@ export default function StudentDashboard() {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [lesson, setLesson] = useState(null);
+  const [sourcePdfUrl, setSourcePdfUrl] = useState("");
+  const [sourcePdfLoading, setSourcePdfLoading] = useState(false);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState("");
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => () => {
+    if (sourcePdfUrl) URL.revokeObjectURL(sourcePdfUrl);
+  }, [sourcePdfUrl]);
 
   useEffect(() => {
     let active = true;
@@ -51,6 +57,7 @@ export default function StudentDashboard() {
   function selectConcept(conceptId) {
     setSelectedSubject(concepts.find((item) => item.concept_id === conceptId)?.subject || "");
     setLesson(null);
+    setSourcePdfUrl("");
     setFeedback(null);
     setSelectedOption("");
     setQuestionIndex(0);
@@ -82,6 +89,19 @@ export default function StudentDashboard() {
       setSelectedOption("");
     } catch (requestError) {
       setError(errorMessage(requestError));
+    }
+  }
+
+  async function loadSourcePdf() {
+    setSourcePdfLoading(true);
+    setError("");
+    try {
+      const { data } = await api.get(`/learn/${selectedId}/source.pdf`, { responseType: "blob" });
+      setSourcePdfUrl(URL.createObjectURL(data));
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setSourcePdfLoading(false);
     }
   }
 
@@ -138,6 +158,14 @@ export default function StudentDashboard() {
                 <div className="lesson-kicker"><span>LESSON</span><StageBadge stage={lesson.stage} /></div>
                 <h2>{lesson.title || selectedConcept?.title || selectedId}</h2>
                 <p className="lesson-meta">{selectedConcept?.subject} <span>·</span> {selectedConcept?.chapter}</p>
+                {lesson.textbook_source && (
+                  <div className="textbook-source-note">
+                    Full textbook text · English · {lesson.source_page_count} pages. Page layout and illustrations are available in the original PDF.
+                    {sourcePdfUrl
+                      ? <a href={sourcePdfUrl} target="_blank" rel="noreferrer">Open original PDF</a>
+                      : <button type="button" onClick={loadSourcePdf} disabled={sourcePdfLoading}>{sourcePdfLoading ? "Loading PDF..." : "Load original PDF"}</button>}
+                  </div>
+                )}
                 <div className="lesson-content"><p>{lesson.content}</p></div>
                 {lesson.keywords?.length > 0 && (
                   <div className="keyword-area"><div className="eyebrow">KEY WORDS</div><div className="keyword-list">{lesson.keywords.map((keyword, index) => <div className="keyword-item" key={`${keyword.en}-${index}`}><strong>{keyword.en}</strong><span>{keyword.regional}</span></div>)}</div></div>

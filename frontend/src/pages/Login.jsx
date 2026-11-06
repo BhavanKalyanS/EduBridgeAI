@@ -5,19 +5,25 @@ import { useAuth } from "../auth/useAuth";
 import { errorMessage } from "../api/client";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
+  const [mode, setMode] = useState("login");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [language, setLanguage] = useState("ta");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const registering = mode === "register";
 
   async function submit(event) {
     event.preventDefault();
     setError("");
     setBusy(true);
     try {
-      const user = await login(email, password);
+      const user = registering
+        ? await register(name, email, password, language)
+        : await login(email, password);
       navigate(`/${user.role}`, { replace: true });
     } catch (requestError) {
       setError(errorMessage(requestError));
@@ -43,19 +49,44 @@ export default function Login() {
       </section>
       <section className="login-panel">
         <div className="login-form-wrap">
-          <div className="eyebrow">WELCOME BACK</div>
-          <h2>Sign in to continue</h2>
-          <p className="form-intro">Use the account provided by your school.</p>
+          <div className="eyebrow">{registering ? "CREATE A STUDENT ACCOUNT" : "WELCOME BACK"}</div>
+          <h2>{registering ? "Start learning with EduBridge" : "Sign in to continue"}</h2>
+          <p className="form-intro">{registering ? "Create an account for CBSE Class 10." : "Use your school account or create a student account."}</p>
           <form onSubmit={submit}>
+            {registering && (
+              <>
+                <label className="field-label" htmlFor="name">Full name</label>
+                <input id="name" type="text" autoComplete="name" maxLength={120} value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" required />
+              </>
+            )}
             <label className="field-label" htmlFor="email">Email address</label>
             <input id="email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@school.edu" required />
+            {registering && (
+              <>
+                <label className="field-label" htmlFor="language">Learning language</label>
+                <select id="language" value={language} onChange={(event) => setLanguage(event.target.value)}>
+                  <option value="ta">Tamil</option>
+                  <option value="ml">Malayalam</option>
+                  <option value="kn">Kannada</option>
+                  <option value="te">Telugu</option>
+                  <option value="en">English</option>
+                </select>
+              </>
+            )}
             <label className="field-label" htmlFor="password">Password</label>
-            <input id="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required />
+            <input id="password" type="password" autoComplete={registering ? "new-password" : "current-password"} minLength={registering ? 10 : 8} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={registering ? "At least 10 characters" : "Enter your password"} required />
             {error && <div className="form-error" role="alert">{error}</div>}
             <button className="primary-button login-submit" type="submit" disabled={busy}>
-              <span>{busy ? "Signing in..." : "Sign in"}</span><ArrowRight size={18} />
+              <span>{busy ? (registering ? "Creating account..." : "Signing in...") : (registering ? "Create account" : "Sign in")}</span><ArrowRight size={18} />
             </button>
           </form>
+          <p className="auth-mode-switch">
+            {registering ? "Already have an account?" : "New student?"}{" "}
+            <button type="button" onClick={() => { setMode(registering ? "login" : "register"); setError(""); }}>
+              {registering ? "Sign in" : "Create a student account"}
+            </button>
+          </p>
+          {registering && <p className="registration-note">Public sign-up is for students only. For real student data, obtain school approval and parental consent first.</p>}
           <p className="login-footnote">The stage shows how much English support is provided, not English proficiency.</p>
         </div>
       </section>
