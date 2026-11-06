@@ -112,6 +112,8 @@ def test_option_not_offered_is_rejected_and_logged(api_client):
 
 def test_parent_cannot_access_teacher_route_and_only_sees_linked_child(api_client):
     client, ids = api_client
+    student_token = _token(client, "student@example.com")
+    lesson_response = client.get("/api/learn/test-concept", headers={"Authorization": f"Bearer {student_token}"})
     parent_token = _token(client, "parent@example.com")
     headers = {"Authorization": f"Bearer {parent_token}"}
 
@@ -120,8 +122,10 @@ def test_parent_cannot_access_teacher_route_and_only_sees_linked_child(api_clien
     other_child = client.get(f"/api/parent/child/{ids['teacher']}", headers=headers)
 
     assert forbidden.status_code == 403
+    assert lesson_response.status_code == 200
     assert child_view.status_code == 200
     assert "events" not in child_view.json
+    assert child_view.json["recent_activity"]["last_lesson"]
     assert other_child.status_code == 404
 
 

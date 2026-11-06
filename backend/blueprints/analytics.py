@@ -148,7 +148,6 @@ def child_progress(student_id: str):
         return jsonify({"error": {"code": "child_not_found", "message": "Linked child not found"}}), 404
     attendance_records = list(mongo.db.attendance.find({"user_id": student_id}).sort("date", -1).limit(60))
     mastery = list(mongo.db.mastery.find({"user_id": student_id}, {"concept_id": 1, "M": 1, "stage": 1}))
-    recent = mongo.db.events.find_one({"user_id": student_id, "valid": True}, sort=[("ts", -1)])
     localized_progress = []
     language = child.get("language", "ta")
     for item in mastery:
@@ -164,6 +163,9 @@ def child_progress(student_id: str):
         "child": {"id": student_id, "name": child["name"], "grade": child.get("grade")},
         "attendance": [{"date": item["date"], "present": item["present"]} for item in attendance_records],
         "progress": localized_progress,
-        "recent_activity": {"last_login": child.get("last_login").isoformat() if child.get("last_login") else None, "last_lesson": recent.get("ts").isoformat() if recent and recent.get("ts") else None},
+        "recent_activity": {
+            "last_login": child.get("last_login").isoformat() if child.get("last_login") else None,
+            "last_lesson": child.get("last_lesson_at").isoformat() if child.get("last_lesson_at") else None,
+        },
         "stage_note": "Stage shows the amount of English support, not English proficiency.",
     })
