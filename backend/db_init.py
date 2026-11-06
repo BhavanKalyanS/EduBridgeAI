@@ -4,6 +4,8 @@ from backend.extensions import mongo
 
 def initialize_indexes() -> None:
     with app.app_context():
+        if not app.config.get("MONGO_URI"):
+            raise RuntimeError("Set MONGO_URI to a MongoDB Atlas connection string before initializing indexes")
         mongo.db.users.create_index("email", unique=True)
         mongo.db.classes.create_index("class_id", unique=True)
         mongo.db.attendance.create_index([("user_id", 1), ("date", 1)], unique=True)

@@ -1,6 +1,6 @@
 # EduBridge AI
 
-EduBridge AI is a stage-aware multilingual learning MVP for Grade 9 Mathematics. It tracks concept understanding (`M`) separately from English-keyword understanding (`L`) and selects one of five authored support stages per student and concept.
+EduBridge AI is a stage-aware multilingual learning MVP for CBSE Class 10. It tracks concept understanding (`M`) separately from English-keyword understanding (`L`) and selects one of five authored support stages per student and concept. The core subject areas are English, Hindi, Mathematics, Science, and Social Science. The seed contains 22 original lesson and quiz samples across those subjects; it is a starter curriculum, not a complete CBSE syllabus.
 
 **Phase 1 only:** authentication and four roles, curriculum, lessons and quizzes, BKT and rule-based stage control, validated answer events, student/teacher/parent/admin dashboards, Docker, tests, and CI. The tutor and offline event-sync endpoints are explicit 501 placeholders. There are no LLM calls, embeddings, vector database, offline packs, support scoring, voice features, or tuned learning parameters.
 
@@ -8,9 +8,9 @@ The BKT values and stage thresholds are configurable defaults, not validated or 
 
 ## Run locally
 
-Prerequisites: Docker Desktop with Compose, Git, and a modern browser. Node.js 26 LTS is needed only for running the frontend outside Docker.
+Prerequisites: a MongoDB Atlas cluster, Docker Desktop with Compose, Git, and a modern browser. Node.js 26 LTS is needed only for running the frontend outside Docker.
 
-1. Copy `.env.example` to `.env` and replace the local secret values.
+1. Create a database user and allow-list your development IP in Atlas Network Access. Copy `.env.example` to `.env`, set `MONGO_URI` to the Atlas SRV connection string for the `edubridge` database, and set local secret values. URL-encode special characters in the database password. Never commit `.env` or use a production database for tests.
 2. From the repository root, start the services:
 
    ```powershell
@@ -26,7 +26,7 @@ Prerequisites: Docker Desktop with Compose, Git, and a modern browser. Node.js 2
 
 4. Open [http://localhost:5173](http://localhost:5173). The API health check is at [http://localhost:5000/api/health](http://localhost:5000/api/health).
 
-The seed scripts are for local demonstration only. They reset demo-account passwords when rerun and create synthetic progress records; do not run them against staging or production data.
+The seed scripts write to the Atlas database in `MONGO_URI`. They reset demo-account passwords when rerun and create synthetic progress records; use a development cluster only, never staging or production data.
 
 ## Demo accounts
 
@@ -51,11 +51,11 @@ python -m pytest backend/tests --cov=backend.services.bkt --cov=backend.services
 ruff check backend scripts
 ```
 
-API integration tests use `TEST_MONGO_URI` and skip when MongoDB is unavailable. To run the frontend checks outside Docker, use Node 26 LTS:
+API integration tests use `TEST_MONGO_URI` for a separate Atlas database with `test` in its name and skip when it is not configured. The tests delete data in that database, so never point it at production. GitHub Actions uses the `TEST_MONGO_URI` secret when configured. To run the frontend checks outside Docker, use Node 26 LTS:
 
 ```powershell
 cd frontend
-npm install
+npm ci
 npm run lint
 npm test
 npm run build
@@ -65,7 +65,7 @@ npm run build
 
 - `backend/`: Flask API, blueprints, pure learning services, Pydantic schemas, tests, and OpenAPI contract.
 - `frontend/`: React/Vite SPA, role routes, five UI locales, and dashboards.
-- `infra/`: local Docker Compose.
+- `infra/`: Docker Compose configured to use MongoDB Atlas; no local MongoDB service is included.
 - `scripts/`: synthetic curriculum and account seeders.
 - `.github/`: pull-request CI and ownership/review templates.
 

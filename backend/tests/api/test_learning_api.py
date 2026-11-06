@@ -10,13 +10,34 @@ from backend.extensions import mongo
 
 
 class IntegrationConfig(TestConfig):
-    MONGO_URI = os.getenv("TEST_MONGO_URI", "mongodb://localhost:27017/edubridge_test?serverSelectionTimeoutMS=1000")
+    MONGO_URI = os.getenv("TEST_MONGO_URI", "")
+
+
+class LocalMongoRuntimeConfig(TestConfig):
+    APP_ENV = "development"
+    MONGO_URI = "mongodb://localhost:27017/edubridge"
+
+
+def test_runtime_rejects_non_atlas_mongodb_uri():
+    with pytest.raises(RuntimeError, match="MongoDB Atlas"):
+        create_app(LocalMongoRuntimeConfig)
+
+
+def test_health_reports_missing_atlas_configuration():
+    response = create_app(TestConfig).test_client().get("/api/health")
+
+    assert response.status_code == 503
+    assert response.json["database"] == "not_configured"
 
 
 @pytest.fixture
 def api_client():
+    if not IntegrationConfig.MONGO_URI.startswith("mongodb+srv://"):
+        pytest.skip("Set TEST_MONGO_URI to a dedicated MongoDB Atlas test database")
     app = create_app(IntegrationConfig)
     with app.app_context():
+        if "test" not in mongo.db.name.lower():
+            pytest.fail("TEST_MONGO_URI must target a dedicated database with 'test' in its name")
         try:
             mongo.cx.admin.command("ping")
         except Exception as error:
@@ -26,11 +47,11 @@ def api_client():
         mongo.db.events.create_index("event_id", unique=True)
         password_hash = bcrypt.hashpw(b"EduBridgeTest!2026", bcrypt.gensalt()).decode()
         teacher_id = mongo.db.users.insert_one({"name": "Test Teacher", "email": "teacher@example.com", "password_hash": password_hash, "role": "teacher", "active": True, "class_id": "class-a"}).inserted_id
-        student_id = mongo.db.users.insert_one({"name": "Test Student", "email": "student@example.com", "password_hash": password_hash, "role": "student", "active": True, "language": "ta", "class_id": "class-a"}).inserted_id
+        student_id = mongo.db.users.insert_one({"name": "Test Student", "email": "student@example.com", "password_hash": password_hash, "role": "student", "active": True, "language": "ta", "board": "CBSE", "grade": "10", "class_id": "class-a"}).inserted_id
         parent_id = mongo.db.users.insert_one({"name": "Test Parent", "email": "parent@example.com", "password_hash": password_hash, "role": "parent", "active": True, "linked_students": [str(student_id)]}).inserted_id
         mongo.db.classes.insert_one({"class_id": "class-a", "name": "Test class", "teacher_id": str(teacher_id), "student_ids": [str(student_id)]})
         mongo.db.curriculum.insert_one({
-            "concept_id": "test-concept", "subject": "Mathematics", "chapter": "Algebra", "lesson": "Variables",
+            "concept_id": "test-concept", "subject": "Mathematics", "board": "CBSE", "grade": "10", "chapter": "Algebra", "lesson": "Variables",
             "title": {"ta": "மாறிகள்", "en": "Variables"}, "review_status": "approved",
             "content": {"ta": {f"s{stage}": "Tamil lesson" for stage in range(5)}, "en": {f"s{stage}": "English lesson" for stage in range(5)}},
             "keywords": [{"ta": "மாறி", "en": "variable"}],

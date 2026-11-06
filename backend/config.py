@@ -19,7 +19,7 @@ class Config:
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "local-only-change-this-jwt-key-to-a-long-random-secret")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=int(os.getenv("JWT_EXPIRES_MINUTES", "30")))
     JWT_TOKEN_LOCATION = ["headers"]
-    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/edubridge")
+    MONGO_URI = os.getenv("MONGO_URI", "")
     MONGO_CONNECT_TIMEOUT_MS = int(os.getenv("MONGO_CONNECT_TIMEOUT_MS", "3000"))
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173")
     BKT_P0 = _float_env("BKT_P0", 0.30)

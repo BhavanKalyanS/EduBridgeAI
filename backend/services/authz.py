@@ -20,6 +20,7 @@ def public_user(user: dict) -> dict:
         "email": user["email"],
         "role": user["role"],
         "language": user.get("language", "ta"),
+        "board": user.get("board", "CBSE"),
         "grade": user.get("grade"),
         "class_id": user.get("class_id"),
         "linked_students": user.get("linked_students", []),

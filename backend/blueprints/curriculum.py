@@ -23,7 +23,11 @@ def _stage_for(user_id: str, concept_id: str) -> dict:
 def concepts():
     user = current_user()
     subject = request.args.get("subject")
-    query = {"review_status": "approved"}
+    query = {
+        "review_status": "approved",
+        "grade": user.get("grade") or "10",
+        "board": user.get("board") or "CBSE",
+    }
     if subject:
         query["subject"] = subject
 
@@ -50,7 +54,12 @@ def concepts():
 @role_required("student")
 def lesson(concept_id: str):
     user = current_user()
-    concept = mongo.db.curriculum.find_one({"concept_id": concept_id, "review_status": "approved"})
+    concept = mongo.db.curriculum.find_one({
+        "concept_id": concept_id,
+        "review_status": "approved",
+        "grade": user.get("grade") or "10",
+        "board": user.get("board") or "CBSE",
+    })
     if concept is None:
         return jsonify({"error": {"code": "concept_not_found", "message": "Concept not found"}}), 404
 

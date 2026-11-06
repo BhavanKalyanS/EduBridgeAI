@@ -30,7 +30,8 @@ class UserCreateRequest(BaseModel):
     password: str = Field(min_length=10, max_length=128)
     role: Literal["student", "teacher", "parent", "admin"]
     language: Literal["ta", "ml", "kn", "te", "en"] = "ta"
-    grade: str | None = Field(default=None, max_length=20)
+    board: Literal["CBSE"] = "CBSE"
+    grade: str | None = Field(default="10", max_length=20)
     class_id: str | None = Field(default=None, max_length=100)
     linked_students: list[str] = Field(default_factory=list)
     consent: bool = False
@@ -41,6 +42,7 @@ class UserUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     role: Literal["student", "teacher", "parent", "admin"] | None = None
     language: Literal["ta", "ml", "kn", "te", "en"] | None = None
+    board: Literal["CBSE"] | None = None
     grade: str | None = Field(default=None, max_length=20)
     class_id: str | None = Field(default=None, max_length=100)
     linked_students: list[str] | None = None
@@ -62,6 +64,8 @@ class CurriculumRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     concept_id: str = Field(min_length=1, max_length=100)
+    board: Literal["CBSE"] = "CBSE"
+    grade: str = Field(default="10", max_length=20)
     subject: str = Field(min_length=1, max_length=100)
     chapter: str = Field(min_length=1, max_length=160)
     lesson: str = Field(min_length=1, max_length=160)

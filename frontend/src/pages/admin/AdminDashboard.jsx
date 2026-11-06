@@ -20,7 +20,7 @@ export default function AdminDashboard() {
   const [classForm, setClassForm] = useState({ class_id: "", name: "", teacher_id: "", student_ids: [] });
   const [editingClass, setEditingClass] = useState("");
   const [selectedConcept, setSelectedConcept] = useState("");
-  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "student", language: "ta", grade: "9", linked_students: [] });
+  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "student", language: "ta", grade: "10", linked_students: [] });
   const [conceptJson, setConceptJson] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -39,8 +39,8 @@ export default function AdminDashboard() {
       setAudit(auditResponse.data.entries);
       setPrivacyRequests(privacyResponse.data.requests);
       setConceptJson(JSON.stringify({
-        concept_id: "math9_var_01", subject: "Mathematics", chapter: "Algebra", lesson: "Variables",
-        title: { en: "Variables", ta: "மாறிகள்", ml: "", kn: "", te: "" },
+        concept_id: "cbse10_math_quadratic", subject: "Mathematics", grade: "10", board: "CBSE", chapter: "Algebra", lesson: "Quadratic equations",
+        title: { en: "Quadratic equations", ta: "இருபடி சமன்பாடுகள்", ml: "", kn: "", te: "" },
         keywords: [{ en: "variable", ta: "மாறி", ml: "", kn: "", te: "" }],
         content: { ta: { s0: "", s1: "", s2: "", s3: "", s4: "" } },
         quiz: [{ q_id: "q1", kind: "concept", question: { ta: "" }, options: ["A", "B"], answer: "A" }],
@@ -58,7 +58,7 @@ export default function AdminDashboard() {
       await api.post("/admin/users", newUser);
       setMessage("Account created.");
       setShowUserForm(false);
-      setNewUser({ name: "", email: "", password: "", role: "student", language: "ta", grade: "9", linked_students: [] });
+      setNewUser({ name: "", email: "", password: "", role: "student", language: "ta", grade: "10", linked_students: [] });
       await load();
     } catch (requestError) { setError(errorMessage(requestError)); }
   }

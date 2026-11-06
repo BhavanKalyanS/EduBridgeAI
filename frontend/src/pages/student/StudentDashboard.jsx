@@ -9,6 +9,7 @@ export default function StudentDashboard() {
   const { t } = useTranslation();
   const [concepts, setConcepts] = useState([]);
   const [revision, setRevision] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [lesson, setLesson] = useState(null);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -25,6 +26,7 @@ export default function StudentDashboard() {
         const items = conceptResponse.data.concepts || [];
         setConcepts(items);
         setRevision(revisionResponse.data.concepts || []);
+        setSelectedSubject(items[0]?.subject || "");
         setSelectedId(items[0]?.concept_id || "");
       })
       .catch((requestError) => active && setError(errorMessage(requestError)))
@@ -47,6 +49,7 @@ export default function StudentDashboard() {
   }, [selectedId]);
 
   function selectConcept(conceptId) {
+    setSelectedSubject(concepts.find((item) => item.concept_id === conceptId)?.subject || "");
     setLesson(null);
     setFeedback(null);
     setSelectedOption("");
@@ -83,6 +86,8 @@ export default function StudentDashboard() {
   }
 
   const selectedConcept = concepts.find((item) => item.concept_id === selectedId);
+  const availableSubjects = [...new Set(concepts.map((item) => item.subject))].sort();
+  const visibleConcepts = concepts.filter((item) => item.subject === selectedSubject);
   const lessonLoading = Boolean(selectedId) && (!lesson || lesson.concept_id !== selectedId);
   const activeQuestion = lesson?.quiz?.[questionIndex];
   const completed = Boolean(lesson?.quiz?.length) && questionIndex >= lesson.quiz.length;
@@ -113,9 +118,9 @@ export default function StudentDashboard() {
       {concepts.length === 0 ? <div className="empty-state"><BookOpenText size={24} /><p>{t("noConcepts")}</p></div> : (
         <div className="learning-layout">
           <section className="concept-panel">
-            <div className="section-heading"><div><div className="eyebrow">GRADE 9 · MATHEMATICS</div><h2>Your concepts</h2></div><span className="item-count">{concepts.length} TOTAL</span></div>
+            <div className="section-heading"><div><div className="eyebrow">GRADE 10 · {selectedSubject.toUpperCase()}</div><h2>Your concepts</h2></div><label className="subject-filter"><span className="sr-only">Subject</span><select aria-label="Subject" value={selectedSubject} onChange={(event) => { const subject = event.target.value; setSelectedSubject(subject); const firstConcept = concepts.find((item) => item.subject === subject); if (firstConcept) selectConcept(firstConcept.concept_id); }}>{availableSubjects.map((subject) => <option value={subject} key={subject}>{subject}</option>)}</select></label></div>
             <div className="concept-list">
-              {concepts.map((concept, index) => (
+              {visibleConcepts.map((concept, index) => (
                 <button className={`concept-row ${selectedId === concept.concept_id ? "selected" : ""}`} type="button" onClick={() => selectConcept(concept.concept_id)} key={concept.concept_id}>
                   <span className="concept-index">{String(index + 1).padStart(2, "0")}</span>
                   <span className="concept-main"><strong>{concept.title || concept.concept_id}</strong><small>{concept.chapter} <span>·</span> {concept.lesson}</small><span className="concept-progress"><span style={{ width: `${Math.round((concept.M || 0) * 100)}%` }} /></span></span>
